@@ -25,45 +25,71 @@ var simulation = d3.forceSimulation()
     .force("center", d3.forceCenter(width / 2, height / 2));
 
 d3.json("nodes1174links3964.json", function(error, graph) {
+  if (error) throw error;
+//variables
   var newNodes = [];
   var newLinks = [];
   let prof = new Set();
-  //teacher list
   for(var i=0;i<graph[0]['coauthorGraph']['nodes'].length;i++){
+    graph[0]['coauthorGraph']['nodes'][i].friendList=new Array;
     if(graph[0]['coauthorGraph']['nodes'][i].type=="root"){
       newNodes.push(graph[0]['coauthorGraph']['nodes'][i]);
-      prof.add(graph[0]['coauthorGraph']['nodes'][i].id);
+      prof.add(i);
     }
   }
-  //teacher's relationship
+//degree-one collaborator list
   for(var i=0;i<graph[0]['coauthorGraph']['links'].length;i++){
-    var source=graph[0]['coauthorGraph']['links'][i].sourceId;
-    var target=graph[0]['coauthorGraph']['links'][i].targetId;
-    if(prof.has(source)&&prof.has(target))
-    newLinks.push(graph[0]['coauthorGraph']['links'][i]);
-    graph[0]['coauthorGraph']['links'][i].source=source;
-    graph[0]['coauthorGraph']['links'][i].target=target;
-    //if not so there will be bug
+    var tidx=graph[0]['coauthorGraph']['links'][i].target;
+    var sidx=graph[0]['coauthorGraph']['links'][i].source;
+    var tisprof=prof.has(tidx);
+    var sisprof=prof.has(sidx);
+    if(tisprof&&(!sisprof)){
+      graph[0]['coauthorGraph']['nodes'][sidx].friendList.push(i);
+    }
+    if((!tisprof)&&sisprof){
+      graph[0]['coauthorGraph']['nodes'][tidx].friendList.push(i);
+    }
+    if(tisprof&&sisprof){
+      graph[0]['coauthorGraph']['links'][i].linkColor="blue";
+      newLinks.push(graph[0]['coauthorGraph']['links'][i]);
+    }
   }
+//find 1-bridge
+  for(var i=0;i<graph[0]['coauthorGraph']['nodes'].length;i++){
+    if(graph[0]['coauthorGraph']['nodes'][i].friendList.length>1){
+      newNodes.push(graph[0]['coauthorGraph']['nodes'][i]);
+      for(var j=0;j<graph[0]['coauthorGraph']['nodes'][i].friendList.length;j++){
+        var idx=graph[0]['coauthorGraph']['nodes'][i].friendList[j];
+        graph[0]['coauthorGraph']['links'][idx].linkColor="grey";
+        newLinks.push(graph[0]['coauthorGraph']['links'][idx]);
+      }
+    }
+  }
+//I don't understand why but that is a must
+  for(var i=0;i<graph[0]['coauthorGraph']['links'].length;i++){
+    graph[0]['coauthorGraph']['links'][i].source=graph[0]['coauthorGraph']['links'][i].sourceId;
+    graph[0]['coauthorGraph']['links'][i].target=graph[0]['coauthorGraph']['links'][i].targetId;
+  }
+
   console.log(newLinks);
   console.log(newNodes);
-
-  if (error) throw error;
+  console.log(prof);
 
   var link = svg.append("g")
     .attr("class", "links")
     .selectAll("line")
     .data(newLinks)
     .enter().append("line")
-    .attr("stroke-width", function(d) { return Math.sqrt(d.paperNum); });
+    .attr("stroke-width",function(d){return Math.sqrt(d.paperNum);})
+    .attr("stroke", function(d){return d.linkColor;});
 
   var node = svg.append("g")
     .attr("class", "nodes")
     .selectAll("circle")
     .data(newNodes)
     .enter().append("circle")
-    .attr("r", 5)
-    .attr("fill", function(d) { return color(d.paperNum); })
+    .attr("r", function(d){if(d.type=="root")return 10;else return 5;})
+    .attr("fill", function(d) { if(d.type=="root")return "DeepSkyBlue";else return "grey"; })
     .call(d3.drag()
     .on("start", dragstarted)
     .on("drag", dragged)
