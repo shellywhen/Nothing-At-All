@@ -6,4 +6,4 @@ A graph layout approach focusing on members in Center for information (National 
 
 **Note**
 
-My first attempt on D3.js.
+This is my first contact to graph layout algorithms as well as D3.js. [Current update](https://shellywhen.github.io/Nothing-At-All/SecondAttemptGraph.html)
