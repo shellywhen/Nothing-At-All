@@ -10,9 +10,9 @@
   stroke-width: 1.5px;
 }
 </style>
-<head>
-<link rel="shortcut icon" href="/site_icon.ico" />
-</head>
+
+<link rel="shortcut icon" href="http://upload-images.jianshu.io/upload_images/6282095-26e20791146b91d3.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" />
+
 <svg width="4096" height="2580"></svg>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
@@ -36,7 +36,7 @@ d3.json("nodes1174links3964.json", function(error, graph) {
   var newLink = [];
   var V=graph[0]['coauthorGraph']['nodes'];
   var E=graph[0]['coauthorGraph']['links'];
-  var Vcenter={index:1178,weight:10000,type:"virtual",id:999999,name:"Not Exist",x:width/2,y:height/2};
+  var Vcenter={index:1178,weight:10000,type:"virtual",id:999999,name:"Not Exist",fx:width/2,fy:height/2};
   newNode.push(Vcenter);
   for(var i=0;i<V.length;i++){
     V[i].friendList=new Array();
@@ -100,12 +100,13 @@ var test=0;
   console.log(newLink);
   console.log(newNode);
   console.log(test);
+//simple layout of svg
   var link = svg.append("g")
     .attr("class", "links")
     .selectAll("line")
     .data(newLink)
     .enter().append("line")
-    .attr("stroke-width",function(d){return 0.1;})
+    .attr("stroke-width",function(d){return 0.8;})
     .attr("stroke", function(d){return d.linkColor;});
 
   var node = svg.append("g")
@@ -114,7 +115,7 @@ var test=0;
     .data(newNode)
     .enter().append("circle")
     .attr("r", function(d){if(d.type=="root")return 20;if(d.type=="virtual") return 0.1;if(d.type=="bridge")return 10;return 5;})
-    .attr("fill", function(d) { if(d.type=="root")return "DeepSkyBlue";if(d.type=="virtual") return "red";if(d.type=="bridge")return "LightSteelBlue";return "gray"; })
+    .attr("fill", function(d) { if(d.type=="root")return "DeepSkyBlue";if(d.type=="virtual") return "red";if(d.type=="bridge")return "lightblue";return "LightSteelBlue"; })
     .call(d3.drag()
     .on("start", dragstarted)
     .on("drag", dragged)
@@ -122,7 +123,7 @@ var test=0;
 
   node.append("title").text(function(d) { return d.name; });
   simulation.nodes(newNode).on("tick", ticked);
-  simulation.force("link").links(newLink);
+  simulation.force("link").links(newLink).strength(function(d){if(d.type=="virtual")return 0.9;if(d.type=="bridge")return 0.5; return 1/(Math.min(count(link.source),count(link.target))); });
   function ticked() {
     link
         .attr("x1", function(d) { return d.source.x; })
