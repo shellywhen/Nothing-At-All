@@ -29,22 +29,25 @@ var simulation = d3.forceSimulation()
     .force("charge", d3.forceManyBody())
     .force("center", d3.forceCenter(width / 2, height / 2));
 
+      console.log(simulation);
+      //console.log(collide);
+
 d3.json("nodes1174links3964.json", function(error, graph) {
   if (error) throw error;
-//variables
   var newNode = [];
   var newLink = [];
   var V=graph[0]['coauthorGraph']['nodes'];
   var E=graph[0]['coauthorGraph']['links'];
-  var Vcenter={index:1178,weight:10000,type:"virtual",id:999999,name:"Not Exist",fx:width/2,fy:height/2};
+  var Vcenter={index:1178,weight:10000,type:"virtual",id:999999,name:"Not Exist",fx:width/2,fy:height/2,cnt:1};
   newNode.push(Vcenter);
   for(var i=0;i<V.length;i++){
+    V[i].cnt=0;
     V[i].friendList=new Array();
     delete(V[i].x);
     delete(V[i].y);
 //use a virtual node to bundle up proffesors of interest
     if(V[i].type=="root"){
-      var tmp={source:Vcenter.id,target:V[i].id,type:"virtual",linkColor:"white"}
+      var tmp={source:Vcenter.id,target:V[i].id,type:"virtual",linkColor:"white",Sidx:Vcenter.index,Tidx:i}
       newLink.push(tmp);
     }
   }
@@ -53,6 +56,10 @@ d3.json("nodes1174links3964.json", function(error, graph) {
     E[i].type="undefined";
     var Tidx=E[i].target;
     var Sidx=E[i].source;
+    E[i].Tidx=E[i].target;
+    E[i].Sidx=E[i].source;
+    ++ V[Tidx].cnt;
+    ++ V[Sidx].cnt;
     var Tisprof=V[Tidx].type=="root";
     var Sisprof=V[Sidx].type=="root";
     if(Tisprof&&(!Sisprof)){
@@ -85,10 +92,8 @@ d3.json("nodes1174links3964.json", function(error, graph) {
     newNode.push(V[i]);
   }
 //get other collaborators
-var test=0;
   for(var i=0;i<E.length;i++){
     if(E[i].type==="undefined"){
-      ++test;
       E[i].type="leaf";
       E[i].source=E[i].sourceId;
       E[i].target=E[i].targetId;
@@ -99,22 +104,20 @@ var test=0;
 
   console.log(newLink);
   console.log(newNode);
-  console.log(test);
+
 //simple layout of svg
   var link = svg.append("g")
     .attr("class", "links")
     .selectAll("line")
     .data(newLink)
     .enter().append("line")
-    .attr("stroke-width",function(d){return 0.8;})
-    .attr("stroke", function(d){return d.linkColor;});
-
+    .attr("stroke-width",function(d){if(d.type=="virtual")return 0;if(d.type=="leaf")return 0.3;return Math.sqrt(d.paperNum+3);});
   var node = svg.append("g")
     .attr("class", "nodes")
     .selectAll("circle")
-    .data(newNode)
+    .data(newNode.reverse())
     .enter().append("circle")
-    .attr("r", function(d){if(d.type=="root")return 20;if(d.type=="virtual") return 0.1;if(d.type=="bridge")return 10;return 5;})
+    .attr("r", function(d){if(d.type=="root")return 20;if(d.type=="virtual") return 0.01;if(d.type=="bridge")return 8;return 5;})
     .attr("fill", function(d) { if(d.type=="root")return "DeepSkyBlue";if(d.type=="virtual") return "red";if(d.type=="bridge")return "lightblue";return "LightSteelBlue"; })
     .call(d3.drag()
     .on("start", dragstarted)
@@ -122,8 +125,12 @@ var test=0;
     .on("end", dragended));
 
   node.append("title").text(function(d) { return d.name; });
-  simulation.nodes(newNode).on("tick", ticked);
-  simulation.force("link").links(newLink).strength(function(d){if(d.type=="virtual")return 0.9;if(d.type=="bridge")return 0.5; return 1/(Math.min(count(link.source),count(link.target))); });
+  simulation.nodes(newNode.reverse()).on("tick", ticked);
+  simulation.force("link").links(newLink)
+ .distance(function(d){if(d.type=="virtual")return 30;if(d.type=="bridge")return 100;if(d.type=="professor")return 50;else return 0;})
+  //.strength(function(d){var a=d.source.cnt;var b=d.target.cnt; if(d.type=="virtual")return 0.5+0.01*b;else {var c= 1/(Math.max(a,b));return c<0.5?0.4:c;}});
+  //function(d){var a=d.source.cnt;var b=d.target.cnt; if(d.type=="virtual")return 0.6+1/b;else {var c= 1/(Math.min(a,b));return c>1.5?1.5:c;}}
+  .strength(function(d){var a=d.source.cnt;var b=d.target.cnt;if(d.type=="virtual")return 0.9;if(d.type=="bridge")return 0.2; return 1/(Math.min(a,b));});
   function ticked() {
     link
         .attr("x1", function(d) { return d.source.x; })
