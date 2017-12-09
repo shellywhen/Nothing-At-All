@@ -8,6 +8,8 @@ A graph layout approach focusing on members in Center for information (National 
 
 This is my first contact to graph layout algorithms as well as D3.js. 
 
+**Progress**
+
 [Current update](https://shellywhen.github.io/Nothing-At-All/Level_3.html)
 
 [LEVEL 1 : professor](https://shellywhen.github.io/Nothing-At-All/Level_1.html)
@@ -22,7 +24,7 @@ This is my first contact to graph layout algorithms as well as D3.js.
 
 <img src="https://shellywhen.github.io/Nothing-At-All//Report/level_3.jpg" style="zoom:40%">
 
-And following is what direct force layout gets.
+And following is what direct force layout gets as a comparison.
 
 <img src="https://shellywhen.github.io/Nothing-At-All//Report/raw_force_layout.png" style="zoom:40%">
 
