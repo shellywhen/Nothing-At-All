@@ -5,15 +5,14 @@
     stroke: #999;
     stroke-opacity: 0.6;
   }
-
   .nodes circle {
     stroke: #fff;
     stroke-width: 1.5px;
   }
 </style>
-<link rel="shortcut icon" href="http://upload-images.jianshu.io/upload_images/6282095-26e20791146b91d3.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" />
+<!--<link rel="shortcut icon" href="http://upload-images.jianshu.io/upload_images/6282095-26e20791146b91d3.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" />-->
 <svg width="4096" height="2580"></svg>
-<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="d3.min.js"></script>
 <script>
   var timeStart = new Date().getTime();
   var svg = d3.select("svg"),
@@ -40,19 +39,32 @@
     }))
     .force("charge", d3.forceManyBody())
     .force("center", d3.forceCenter(width / 2, height / 2))
-    .force("collision", d3.forceCollide().radius(function(d){if (d.type == "root") return 20;return 10;}));
+    .force("collision", d3.forceCollide().radius(function(d){if (d.type == "root") return 30;return 10;}));
+
   var simulation_3 = d3.forceSimulation()
     .force("link", d3.forceLink().id(function(d) {return d.id; }))
-   .force("charge", d3.forceManyBody().distanceMax(300))
+    .force("charge", d3.forceManyBody().distanceMax(400))
+    //.strength(function(d){if(d.type=="leaf")return -5;return Math.sqrt(Math.sqrt(d.cnt))*-10;}))
     .force("center", d3.forceCenter(width / 2, height / 2))
-    .force("collision", d3.forceCollide().radius(function(d) {if (d.type == "root")return 30;return 10 ;}));
+   .force("collision", d3.forceCollide().radius(function(d){if (d.type == "root") return -30;if(d.type=="leaf")return -5;return -20;}).strength(0.4).iterations(2));
  simulation_3.force("link")
-    .strength(function(d){var a=d.source.cnt;var b=d.target.cnt;if(d.type=="virtual")return 0.01+0.005*b;return 1/(Math.min(a,b));})
-    .distance(function(d){if(d.type=="virtual")return 30;if(d.type=="bridge")return 300;if(d.type=="professor")return 40; return 20;});
+  .strength(function(d){var a=d.source.cnt;var b=d.target.cnt;if(d.type=="virtual")return 0.03+0.002*Math.sqrt(Math.sqrt(b));return 0.5/(Math.min(a,b));})
+  .iterations(2)
+//   .distance(function(d){if(d.type=="virtual")return 100;if(d.type=="bridge")return 40;if(d.type=="professor")return 200; return 30;});
   var V;
   var E;
   var newNode = [];
   var newLink = [];
+  var Vcenter = {
+    index: 1178,
+    weight: 10000,
+    type: "virtual",
+    id: 999999,
+    name: "Not Exist",
+    fx: width / 2,
+    fy: height / 2,
+    cnt: 1
+  };
   d3.json("nodes1174links3964.json", function(error, graph) {
     if (error) throw error;
     V = graph[0]['coauthorGraph']['nodes'];
@@ -63,22 +75,28 @@
       newNode[i].fx=newNode[i].x;
       newNode[i].fy=newNode[i].y;
     }
-   //debug();
+  // debug();
     second_layer();
-    //debug();
+   //debug();
     whatsoever();
-    //debug();
-    third_layer();
+  // debug();
+   third_layer();
     for(var i in newNode){
-      delete(newNode[i].fx);
-      delete(newNode[i].fy);
+      if(newNode[i].type=="root")
+      console.log(newNode[i].x,newNode[i].y,newNode[i].name);
+      if(newNode[i].type=="bridge"){
+        delete(newNode[i].fx);
+        delete(newNode[i].fy);
+      }
     }
-    adjust();
+    for(var i in newNode){
+      if(newNode[i].type=="root")
+      {
+        delete(newNode[i].fx);
+        delete(newNode[i].fy);
+      }
+    }
   });
-  function adjust(){
-    simulation_3.force("charge",NULL);
-    simulation_3.force("collision",NULL);
-  }
   function debug(){
     var tmpnode = svg.append("g")
       .attr("class", "nodes")
@@ -101,16 +119,6 @@
   }
   function pre_process() {
     //use a virtual node to bundle up proffesors of interest
-    var Vcenter = {
-      index: 1178,
-      weight: 10000,
-      type: "virtual",
-      id: 999999,
-      name: "Not Exist",
-      fx: width / 2,
-      fy: height / 2,
-      cnt: 1
-    };
     newNode.push(Vcenter);
     for (var i in V) {
       V[i].cnt = 0;
@@ -167,13 +175,12 @@
       }
     }
   }
-  //initialise the position of interest point
+  //initialise the POI pos
   function first_layer() {
     simulation_1.nodes(newNode);
     simulation_1.force("link").links(newLink);
-    simulation_1.stop(0.1).tick();
+    simulation_1.stop().tick();
   }
-
   function second_layer() {
     for (var i in V) {
       if (V[i].type == "bridge"){
@@ -200,12 +207,13 @@
       if (E[i].type == "bridge")
         newLink.push(E[i]);
 
-    // simulation_2.nodes(newNode);
-    // simulation_2.force("link").links(newLink);
-    // simulation_2.stop().tick();
+   simulation_2.nodes(newNode);
+   simulation_2.force("link").links(newLink);
+   simulation_2.stop().tick();
 
   }
-  function whatsoever(){
+  //modify the initial position of Vertex[not so important]
+ function whatsoever(){
     for (var i in E) {
       if (E[i].type == "undefined") {
         var Tidx=E[i].Tidx;
@@ -229,29 +237,28 @@
         newLink.push(E[i]);
 
   }
-  function third_layer() {
-    //modify the initial position of Vertex[not so important]
+ function third_layer() {
     var link = svg.append("g")
       .attr("class", "links")
       .selectAll("line")
-      .data(newLink)
+      .data(newLink.reverse())
       .enter().append("line")
       .attr("stroke-width", function(d) {
         if (d.type == "virtual") return 0;
-        if (d.type == "leaf") return 0.5;
-        return 1;
+        if (d.type == "leaf") return 0.6;
+        return 1.2;
       });
 
     var node = svg.append("g")
       .attr("class", "nodes")
       .selectAll("circle")
-      .data(newNode)
+      .data(newNode.reverse())
       .enter().append("circle")
       .attr("r", function(d) {
-        if (d.type == "root") return 30;
+        if (d.type == "root") return 20;
         if(d.type=="bridge")return 12;
         if (d.type == "virtual") return 0.01;
-        return 6;
+        return 5;
       })
       .attr("fill", function(d) {
         if (d.type == "root") return "DeepSkyBlue";
