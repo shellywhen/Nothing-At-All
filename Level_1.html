@@ -96,7 +96,7 @@ function first_layer(){
     .selectAll("line")
     .data(newLink)
     .enter().append("line")
-    .attr("stroke-width",function(d){if(d.type=="virtual")return 0;if(d.type=="leaf")return 0.3;return 0.6;});
+    .attr("stroke-width",function(d){if(d.type=="virtual")return 0;if(d.type=="leaf")return 2.6;return 4.6;});
   var node = svg.append("g")
     .attr("class", "nodes")
     .selectAll("circle")
